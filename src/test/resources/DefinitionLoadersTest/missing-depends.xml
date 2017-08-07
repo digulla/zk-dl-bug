@@ -1,0 +1,12 @@
+<!-- Extend existing widget (broken) -->
+<language-addon>
+	<addon-name>missing-depends</addon-name>
+	<!-- Missing the depends element -->
+	<language-name>xul/html</language-name>
+	
+	<component>
+		<component-name>missingDepends</component-name>
+		<component-class>org.zkoss.test.definitionloaders.ExtendsCorrectly</component-class>
+		<extends>textbox</extends>
+	</component>
+</language-addon>

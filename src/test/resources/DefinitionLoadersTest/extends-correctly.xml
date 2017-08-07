@@ -1,0 +1,12 @@
+<!-- Extend existing widget (correct way) -->
+<language-addon>
+	<addon-name>extends-correctly</addon-name>
+	<depends>zkbind</depends>
+	<language-name>xul/html</language-name>
+	
+	<component>
+		<component-name>extendsCorrectly</component-name>
+		<component-class>org.zkoss.test.definitionloaders.ExtendsCorrectly</component-class>
+		<extends>textbox</extends>
+	</component>
+</language-addon>
