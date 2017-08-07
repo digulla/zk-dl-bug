@@ -264,7 +264,7 @@ public class DefinitionLoaders {
 			final String deviceType = IDOMs.getRequiredElementValue(root, "device-type");
 			String treeBuilderClass = root.getElementValue("treebuilder-class", true);
 
-			if (treeBuilderClass == null) // XulTreeBuilder as default
+			if (treeBuilderClass == null)
 				treeBuilderClass = XmlTreeBuilder.class.getName();
 
 			log.debug("Load language: {}, {}", lang, ns);
