@@ -245,7 +245,7 @@ public class DefinitionLoaders {
 		}
 	}
 
-	private static void parseLang(Document doc, Locator locator, URL url, boolean addon) throws Exception {
+	/*test*/ static void parseLang(Document doc, Locator locator, URL url, boolean addon) throws Exception {
 		final Element root = doc.getRootElement();
 		final String lang = IDOMs.getRequiredElementValue(root, "language-name");
 		final LanguageDefinition langdef;
