@@ -175,14 +175,13 @@ public class DefinitionLoaders {
 		//2. process lang.xml (no particular dependency)
 		for (Enumeration<URL> en = locator.getResources("metainfo/zk/lang.xml"); en.hasMoreElements();) {
 			final URL url = (URL) en.nextElement();
-			if (log.isDebugEnabled())
-				log.debug("Loading " + url);
+			log.debug("Loading {}", url);
 			try {
 				final Document doc = new SAXBuilder(true, false, true).build(url);
 				if (ConfigParser.checkVersion(url, doc, true))
 					parseLang(doc, locator, url, false);
 			} catch (Exception ex) {
-				log.error("Failed to load " + url, ex);
+				log.error("Failed to load {}", url, ex);
 				throw UiException.Aide.wrap(ex, "Failed to load " + url);
 				//abort since it is hardly to work then
 			}
@@ -205,7 +204,7 @@ public class DefinitionLoaders {
 				if (ConfigParser.checkVersion(res.url, res.document, true))
 					parseLang(res.document, locator, res.url, true);
 			} catch (Exception ex) {
-				log.error("Failed to load " + res.url, ex);
+				log.error("Failed to load {}", res.url, ex);
 				//keep running
 			}
 		}
@@ -227,7 +226,7 @@ public class DefinitionLoaders {
 				try {
 					LanguageDefinition.addExtension(ext, lang);
 				} catch (DefinitionNotFoundException ex) {
-					log.warn("Extension " + ext + " ignored since language " + lang + " not found");
+					log.warn("Extension {} ignored since language {} not found", ext, lang);
 				}
 			}
 			_exts = null;
@@ -240,19 +239,20 @@ public class DefinitionLoaders {
 		try {
 			parseLang(new SAXBuilder(true, false, true).build(url), locator, url, addon);
 		} catch (Exception ex) {
-			log.error("Failed to load " + (addon ? "addon" : "language") + ": " + url, ex);
+			log.error("Failed to load {}: {}", (addon ? "addon" : "language"), url, ex);
 			//keep running
 		}
 	}
 
 	/*test*/ static void parseLang(Document doc, Locator locator, URL url, boolean addon) throws Exception {
+		log.debug("Parsing {}{}", addon ? "addon " : "", url);
+		
 		final Element root = doc.getRootElement();
 		final String lang = IDOMs.getRequiredElementValue(root, "language-name");
 		final LanguageDefinition langdef;
 		final Device device;
 		if (addon) {
-			if (log.isDebugEnabled())
-				log.debug("Addon language to " + lang + " from " + root.getElementValue("addon-name", true));
+			log.debug("Addon language to {} from {}", lang, root.getElementValue("addon-name", true));
 			langdef = LanguageDefinition.lookup(lang);
 			device = Devices.getDevice(langdef.getDeviceType());
 
@@ -266,7 +266,7 @@ public class DefinitionLoaders {
 			if (treeBuilderClass == null) // XulTreeBuilder as default
 				treeBuilderClass = XmlTreeBuilder.class.getName();
 
-			//if (log.isDebugEnabled()) log.debug("Load language: "+lang+", "+ns);
+			log.debug("Load language: {}, {}", lang, ns);
 
 			PageRenderer pageRenderer = (PageRenderer) locateClass(
 					IDOMs.getRequiredElementValue(root, "renderer-class"), PageRenderer.class).newInstance();
@@ -319,7 +319,7 @@ public class DefinitionLoaders {
 			//ondemand means to cancel the previous definition (merge or not)
 			if (pkg != null) {
 				if (src != null)
-					log.warn("The src attribute ignored because package is specified, " + el.getLocator());
+					log.warn("The src attribute ignored because package is specified, {}", el.getLocator());
 				if (!ondemand && !merge) {
 					src = "~." + device.packageToPath(pkg);
 					pkg = null;
@@ -345,7 +345,7 @@ public class DefinitionLoaders {
 			} else if (ctn != null && ctn.length() > 0) {
 				js = new JavaScript(ctn);
 			} else {
-				log.warn("Ignored: none of the src or package attribute, or the content specified, " + el.getLocator());
+				log.warn("Ignored: none of the src or package attribute, or the content specified, {}", el.getLocator());
 				continue;
 			}
 			langdef.addJavaScript(js);
@@ -405,9 +405,9 @@ public class DefinitionLoaders {
 					try {
 						cls = locateClass(clsnm, Component.class);
 					} catch (Throwable ex) { //Feature 1873426
-						log.warn("Component " + name + " ignored. Reason: unable to load " + clsnm + " due to "
-								+ ex.getClass().getName() + ": " + ex.getMessage()
-								+ (ex instanceof NoClassDefFoundError ? "" : "\n" + el.getLocator()));
+						log.warn("Component {} ignored. Reason: unable to load {} due to {}: {}{}",
+								name, clsnm, ex.getClass().getName(), ex.getMessage(),
+								(ex instanceof NoClassDefFoundError ? "" : "\n" + el.getLocator()));
 						log.debug("", ex);
 						//keep processing (Feature 2060367)
 					}
@@ -421,8 +421,7 @@ public class DefinitionLoaders {
 			final ComponentDefinitionImpl compdef;
 			boolean extend = false;
 			if (macroURI != null && macroURI.length() != 0) {
-				if (log.isTraceEnabled())
-					log.trace("macro component definition: " + name);
+				log.trace("macro component definition: {}", name);
 
 				final String inline = el.getElementValue("inline", true);
 				compdef = (ComponentDefinitionImpl) langdef.getMacroDefinition(name, macroURI, "true".equals(inline),
@@ -457,8 +456,7 @@ public class DefinitionLoaders {
 				extend = true;
 
 				final String extnm = el.getElementValue("extends", true);
-				if (log.isTraceEnabled())
-					log.trace("Extends component definition, " + name + ", from " + extnm);
+				log.trace("Component definition {}:{} extends {}", langdef.getName(), name, extnm);
 				ComponentDefinition tmpRef = langdef.getComponentDefinitionIfAny(extnm);
 
 				if (tmpRef == null) //search Shadow
@@ -467,8 +465,8 @@ public class DefinitionLoaders {
 				final ComponentDefinition ref = tmpRef;
 
 				if (ref == null) {
-					log.warn("Component " + name + " ignored. Reason: extends a non-existent component " + extnm + ".\n"
-							+ el.getLocator());
+					log.warn("Component {} ignored. Reason: extends a non-existent component {}.\n{}",
+							name, extnm, el.getLocator());
 					//not throw exception since the derived component might be
 					//ignored due to class-not-found
 					continue;
@@ -496,8 +494,7 @@ public class DefinitionLoaders {
 				}
 				//Note: setImplementationClass before addComponentDefinition
 			} else {
-				if (log.isTraceEnabled())
-					log.trace("Add component definition: name=" + name);
+				log.trace("Add component definition: name={}", name);
 
 				if (cls == null && clsnm == null)
 					throw new UiException(message("component-class is required", el));
@@ -552,10 +549,12 @@ public class DefinitionLoaders {
 					if (wd != null)
 						wd.addMold(nm, moldURI);
 					else
-						log.error("Mold " + nm + " for " + name + " ignored because "
-								+ ((wn != null && withEL(wn)) || (wgtnm != null && withEL(wgtnm))
-										? "widget-class contains EL expressions" : "widget-class is required")
-								+ ", " + e.getLocator());
+						log.error("Mold {} for {} ignored because {}, {}",
+								nm, name,
+								((wn != null && withEL(wn)) || (wgtnm != null && withEL(wgtnm))
+										? "widget-class contains EL expressions"
+										: "widget-class is required"),
+								e.getLocator());
 				}
 
 				if (cssURI != null && cssURI.length() > 0) {
@@ -567,8 +566,8 @@ public class DefinitionLoaders {
 							cssURI = "~." + device.toAbsolutePath(n.substring(0, k).replace('.', '/') + '/' + cssURI);
 						} else {
 							log.error(
-									"Absolute path required for cssURI, since the widget class contains EL expressions, "
-											+ e.getLocator());
+									"Absolute path required for cssURI, since the widget class contains EL expressions, {}",
+											e.getLocator());
 						}
 					}
 					langdef.addCSSURI(cssURI);
@@ -660,14 +659,13 @@ public class DefinitionLoaders {
 				final String uri = params.remove("uri");
 				final String prefix = params.remove("prefix");
 				if (!params.isEmpty())
-					log.warn("Ignored unknown attribute: " + params + ", " + pi.getLocator());
+					log.warn("Ignored unknown attribute: {}, {}", params, pi.getLocator());
 				if (uri == null || prefix == null)
 					throw new UiException(message("Both uri and prefix attribute are required", pi));
-				if (log.isDebugEnabled())
-					log.debug("taglib: prefix=" + prefix + " uri=" + uri);
+				log.debug("taglib: prefix={} uri={}", prefix, uri);
 				langdef.addTaglib(new Taglib(prefix, uri));
 			} else {
-				log.warn("Unknown processing instruction: " + target);
+				log.warn("Unknown processing instruction: {}", target);
 			}
 		}
 	}
