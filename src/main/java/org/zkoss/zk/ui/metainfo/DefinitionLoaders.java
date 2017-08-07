@@ -251,6 +251,7 @@ public class DefinitionLoaders {
 		final String lang = IDOMs.getRequiredElementValue(root, "language-name");
 		final LanguageDefinition langdef;
 		final Device device;
+		final boolean hasDepends = root.getElement("depends") != null;
 		if (addon) {
 			log.debug("Addon language to {} from {}", lang, root.getElementValue("addon-name", true));
 			langdef = LanguageDefinition.lookup(lang);
@@ -392,6 +393,13 @@ public class DefinitionLoaders {
 			else
 				langdef.addInitScript(zslang, s);
 		}
+		
+		// All the components defined in this file
+		Set<String> siblings = new HashSet<String>();
+		for (Element el: root.getElements("component")) {
+			final String name = IDOMs.getRequiredElementValue(el, "component-name");
+			siblings.add(name);
+		}
 
 		for (Iterator<Element> it = root.getElements("component").iterator(); it.hasNext();) {
 			final Element el = (Element) it.next();
@@ -478,6 +486,13 @@ public class DefinitionLoaders {
 				if (extnm.equals(name)) {
 					compdef = (ComponentDefinitionImpl) ref;
 				} else {
+					log.trace("{}:{} extends {}:{}", langdef.getName(), name, ref.getLanguageDefinition().getName(), ref.getName());
+
+					// Trying to reference a widget from another lang(-addon).xml?
+					if (!hasDepends && !siblings.contains(extnm)) {
+						throw new MissingDependsException(url, name, ref.getName());
+					}
+					
 					compdef = (ComponentDefinitionImpl) ref.clone(ref.getLanguageDefinition(), name);
 					compdef.setDeclarationURL(url);
 				}

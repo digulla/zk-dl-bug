@@ -1,34 +1,26 @@
 package org.zkoss.zk.ui.metainfo;
 
-import static org.junit.Assert.*;
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertNotNull;
+import static org.junit.Assert.assertNull;
+import static org.junit.Assert.fail;
 
-import java.io.IOException;
 import java.lang.reflect.AccessibleObject;
 import java.lang.reflect.Field;
 import java.net.URL;
 import java.util.Collections;
-import java.util.Enumeration;
 import java.util.List;
 import java.util.Map;
 
-import javax.xml.parsers.ParserConfigurationException;
-
 import org.junit.BeforeClass;
 import org.junit.Test;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-import org.xml.sax.SAXException;
 import org.zkoss.idom.Document;
-import org.zkoss.idom.Element;
 import org.zkoss.idom.input.SAXBuilder;
-import org.zkoss.idom.util.IDOMs;
 import org.zkoss.lang.Classes;
 import org.zkoss.lang.reflect.Fields;
 import org.zkoss.test.definitionloaders.ExtendsCorrectly;
 import org.zkoss.test.definitionloaders.SimpleWidget;
-import org.zkoss.util.resource.Locator;
 import org.zkoss.util.resource.XMLResourcesLocator;
-import org.zkoss.util.resource.XMLResourcesLocator.Resource;
 import org.zkoss.zk.ui.impl.Utils;
 import org.zkoss.zk.ui.sys.ConfigParser;
 
@@ -36,8 +28,6 @@ public class DefinitionLoadersTest {
 
 	private static final String TEXTBOX_ZKBIND = "@ZKBIND(ACCESS=[both], SAVE_EVENT=[onChange], LOAD_REPLACEMENT=[rawValue], LOAD_TYPE=[java.lang.String])";
 
-	private final static Logger LOG = LoggerFactory.getLogger(DefinitionLoadersTest.class);
-	
 	final XMLResourcesLocator locator = Utils.getXMLResourcesLocator();
 	
 	@BeforeClass
@@ -148,17 +138,16 @@ public class DefinitionLoadersTest {
 		loadLangXml();
 		// If we're lucky, zkbind will be early in the classpath. Then, things seem to work
 		loadZkbind();
-		loadLang("missing-depends.xml");
-
-		LanguageDefinition zul = peekZul();
-		ComponentDefinition label = zul.getComponentDefinition("textbox");
-		assertNotNull(label.getAnnotationMap());
-		assertEquals(TEXTBOX_ZKBIND, label.getAnnotationMap().getAnnotation("value", "ZKBIND").toString());
-
-		ComponentDefinition compdef = zul.getComponentDefinition("missingDepends");
-		assertEquals(ExtendsCorrectly.class, compdef.getImplementationClass());
-		assertNotNull(compdef.getAnnotationMap());
-		assertEquals(TEXTBOX_ZKBIND, compdef.getAnnotationMap().getAnnotation("value", "ZKBIND").toString());
+		URL url = getTestResourceUrl("missing-depends.xml");
+		try {
+			loadLang(url, true);
+			
+			fail("Missing exception");
+		} catch(MissingDependsException e) {
+			assertEquals(url.toExternalForm(), e.getUrl().toExternalForm());
+			assertEquals("missingDepends", e.getComponentName());
+			assertEquals("textbox", e.getExtendedComponentName());
+		}
 	}
 
 	@Test
@@ -166,17 +155,16 @@ public class DefinitionLoadersTest {
 		loadSystemConfig();
 		loadLangXml();
 		// If we're *not* lucky, zkbind will be on the classpath after the extension. Now, the annotations are missing!
-		loadLang("missing-depends.xml");
-		loadZkbind();
-
-		LanguageDefinition zul = peekZul();
-		ComponentDefinition label = zul.getComponentDefinition("textbox");
-		assertNotNull(label.getAnnotationMap());
-		assertEquals(TEXTBOX_ZKBIND, label.getAnnotationMap().getAnnotation("value", "ZKBIND").toString());
-
-		ComponentDefinition compdef = zul.getComponentDefinition("missingDepends");
-		assertEquals(ExtendsCorrectly.class, compdef.getImplementationClass());
-		assertNull(compdef.getAnnotationMap()); // This is bad!
+		URL url = getTestResourceUrl("missing-depends.xml");
+		try {
+			loadLang(url, true);
+			
+			fail("Missing exception");
+		} catch(MissingDependsException e) {
+			assertEquals(url.toExternalForm(), e.getUrl().toExternalForm());
+			assertEquals("missingDepends", e.getComponentName());
+			assertEquals("textbox", e.getExtendedComponentName());
+		}
 	}
 
 	private void loadSystemConfig() {
@@ -208,16 +196,20 @@ public class DefinitionLoadersTest {
 	}
 
 	private void loadLang(String resource) throws Exception {
-		String folder = getClass().getSimpleName();
-		String path = folder + "/" + resource;
-		URL url = getClass().getClassLoader().getResource(path);
-		assertNotNull("Resource not found: " + path, url);
+		URL url = getTestResourceUrl(resource);
 		
 		loadLang(url, true);
 	}
 
+	private URL getTestResourceUrl(String resource) {
+		String folder = getClass().getSimpleName();
+		String path = folder + "/" + resource;
+		URL url = getClass().getClassLoader().getResource(path);
+		assertNotNull("Resource not found: " + path, url);
+		return url;
+	}
+
 	private void loadLang(URL url, boolean addon) throws Exception {
-		LOG.info("Loading {}{}", addon ? "addon " : "", url);
 		Document doc;
 		try {
 			doc = new SAXBuilder(true, false, true).build(url);
